@@ -85,9 +85,7 @@ public class RFIDMeetingTracker
                     int id = Integer.parseInt(idBuffer.toString(), 16);
                     System.out.println("Formatted Buffer: " + id);
 
-                } else {
-                    System.out.println(n + ": No card found");
-                }
+                } 
                 try
                 {
                     Thread.sleep(250);
