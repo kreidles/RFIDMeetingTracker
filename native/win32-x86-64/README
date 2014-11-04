@@ -1,6 +1,0 @@
-This application depends on the pcProx card reader SDK.  The SDK is not open source and the license
-terms do not allow me to distribute the required pcProxAPI.dll file.
-
-If you wish to install and run the RFIDMeetingTracker software, please purchase a copy of the SDK at
-
-https://www.rfideas.com/products/sdk/universal-enroll-sdk

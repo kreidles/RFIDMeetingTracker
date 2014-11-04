@@ -20,78 +20,39 @@
  */
 package edu.ucdenver.rfidmeetingtracker.reader;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
+/**
+ * Main routine for reading from a pcProx RFID card reader.
+ * Data is logged to a local file and sent to a central server.
+ * 
+ * @author Sarah Kreidler
+ *
+ */
 public class RFIDMeetingTracker 
 {
-    // length of data buffer for card reads
-    private static final short BUFSIZE = 8;
-    // id information is in the last two bytes of the RFID
-    private static final short ID_START_BYTE = 1;
-
-    // load the native dll for interacting with the card reader
-    // p.s. Thank you JNA developers for being awesome!
-    public interface pcProxDLL extends Library {
-
-        pcProxDLL INSTANCE = (pcProxDLL) Native.loadLibrary("pcProxAPI.dll", pcProxDLL.class);
-        /**
-         * Connect to the card reader via USB
-         * (note, the api does not contain a corresponding disconnect function)
-         */
-        short usbConnect(); 
-
-        /**
-         * Make the card reader beep
-         * @param count number of beeps
-         * @param longBeep if 1, the beeps will be longer in duration, else short
-         */
-        short BeepNow(int count, int longBeep); 
-
-        /**
-         * Read the current card ID 
-         */
-        short GetActiveID(byte[] buffer, short sizeOfByteBuffer);
-    }
-
     // Poll the device every second to check for a new card 
     public static void main(String[] args) {
+        // shared queue of attendee data
+        // blocking queue of attendee data for processing
+        BlockingQueue<AttendeeData> attendeeDataQueue = 
+                new ArrayBlockingQueue<AttendeeData>(100);
 
-        pcProxDLL pcProx = pcProxDLL.INSTANCE;
+        try {
+            // thread to read the card data
+            RFIDReaderThread readerThread = new RFIDReaderThread(attendeeDataQueue, "attendeeLog.csv");
+            // thread to process card data
+            RFIDDataProcessorThread processorThread = new RFIDDataProcessorThread(attendeeDataQueue);
 
-        short rc = pcProx.usbConnect();
-        if(rc == 0)
-        {
-            System.out.println("Exit: No USB pcProx found.");
-        }
-        else
-        {
-            System.out.println("Found RFID reader: " + rc);
-
-            int n = 120;
-            short bits = 0;
-            byte[] buffer = new byte[BUFSIZE];
-
-
-            while(n-- > 0)
-            {
-                bits = pcProx.GetActiveID(buffer, BUFSIZE);
-                if (bits > 0) {
-                    StringBuffer idBuffer = new StringBuffer();
-                    for(int i = ID_START_BYTE; i >= 0; i--) {
-                        idBuffer.append(String.format("%02X", buffer[i]));
-                    }
-
-                    int id = Integer.parseInt(idBuffer.toString(), 16);
-                    System.out.println("Formatted Buffer: " + id);
-
-                } 
-                try
-                {
-                    Thread.sleep(250);
-                }
-                catch(InterruptedException e) {}
-            }   
+            // fire up the reader and processor threads
+            readerThread.start();
+            processorThread.start();
+        } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+        } catch (IOException ie) {
+            System.out.println(ie.getMessage());
         }
     }
 }
