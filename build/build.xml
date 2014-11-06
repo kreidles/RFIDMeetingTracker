@@ -29,7 +29,7 @@
 	<property name="artifacts.dir" value="${basedir}/artifacts" />
 	<property name="javadoc.dir" value="${tmp.dir}/${module.name}-${module.version}-javadoc" />
 	
-	<fileset id="lib.dir" dir="${basedir}/lib">
+	<fileset id="lib.dir" dir="${basedir}/../lib">
 		<include name="jna.jar" />
 	</fileset>
 	<path id="library.path">
