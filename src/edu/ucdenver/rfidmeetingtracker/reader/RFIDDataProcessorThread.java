@@ -20,6 +20,7 @@
  */
 package edu.ucdenver.rfidmeetingtracker.reader;
 
+import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -30,11 +31,12 @@ import java.util.concurrent.BlockingQueue;
  *
  */
 public class RFIDDataProcessorThread extends Thread {
+    private static int STOP_REQUEST = Integer.MIN_VALUE;
     // blocking queue of attendee data for processing
     private BlockingQueue<AttendeeData> attendeeDataQueue = null;
     // flag to allow clean interrupt of the thread
-    private volatile boolean shuttingDown = false;
-    private volatile boolean terminated = false;
+    private boolean shuttingDown = false;
+    private boolean terminated = false;
 
     /**
      * Create a new processor thread.
@@ -49,7 +51,11 @@ public class RFIDDataProcessorThread extends Thread {
      * Shutdown the thread
      */
     public void softTerminate() {
-        terminated = true;
+        /* push a stop request onto the queue.
+         * This allows any scheduled card reads to be processed prior to
+         * the thread shutting down
+         */
+        attendeeDataQueue.add(new AttendeeData(new Date(), STOP_REQUEST));
     }
 
     /**
@@ -77,8 +83,13 @@ public class RFIDDataProcessorThread extends Thread {
             while(!terminated) {
 
                 newData = attendeeDataQueue.take();
-                System.out.println("Got item: " + newData.getCardSwipeDate() + " " + 
-                        newData.getAttendeeID());
+                if (newData.getAttendeeID() == STOP_REQUEST) {
+                    terminated = true;
+                } else {
+                    System.out.println("Got item: " + newData.getCardSwipeDate() + " " + 
+                            newData.getAttendeeID());
+                    // TODO: connect to remote data store
+                }
             }
         } catch (InterruptedException iex) {
             // no action needed

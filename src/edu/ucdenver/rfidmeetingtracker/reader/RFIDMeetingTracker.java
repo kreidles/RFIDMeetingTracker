@@ -58,8 +58,7 @@ public class RFIDMeetingTracker
     // flag to allow clean shutdown of the reader thread
     private static boolean terminated = false;
     // log file
-    // TODO: configuration for this!!
-    private static final String pathToLogFile = "attendeeLog.csv";
+    private static String pathToLogFile = "attendeeLog.csv";
 
     // log formatter which just writes the message
     private static class RawFormatter extends Formatter {
@@ -101,8 +100,11 @@ public class RFIDMeetingTracker
         
         System.out.println(new Date() + ": Starting RFID Meeting Tracker Service");
         
-        // start the processor thread
-        processorThread.start();
+        // configure the log path
+        String logPath=System.getProperty("rfidmeetingtracker.log.path");
+        if (logPath != null && logPath.length() > 0) {
+            pathToLogFile = logPath;
+        }
         
         // set up logging
         LOGGER.setLevel(Level.INFO);
@@ -121,6 +123,8 @@ public class RFIDMeetingTracker
                 throw new RuntimeException("No USB pcProx found.");
             } else {
                 System.out.println(new Date() + ": Connected to card reader");
+                // start the processor thread
+                processorThread.start();
                 // number of bits read from device
                 short bits = 0;
                 // buffer to hold card information
@@ -191,7 +195,7 @@ public class RFIDMeetingTracker
      * @param args
      */
     public static void start(String[] args) {
-        System.out.println("Starting RFIDMeetingTracker service");
+        System.out.println(new Date() + ": Starting RFIDMeetingTracker service");
         try {
             run();
         } catch (RuntimeException e) {
@@ -206,7 +210,7 @@ public class RFIDMeetingTracker
      * @param args
      */
     public static void stop(String[] args) {
-        System.out.println("Stopping RFIDMeetingTracker service");
+        System.out.println(new Date() + ": Stopping RFIDMeetingTracker service");
         processorThread.softTerminate();
         terminated = true;
     }

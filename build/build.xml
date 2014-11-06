@@ -25,10 +25,12 @@
 	<property name="author" value="Sarah Kreidler" />
 	<property name="module.version" value="1.0.0" />
 	<property name="source.dir" value="${basedir}/../src" />
+	<property name="service.dir" value="${basedir}/../service" />
 	<property name="tmp.dir" value="${basedir}/tmp" />
+	<property name="zip.dir" value="${basedir}/tmp/${module.name}-${module.version}" />
 	<property name="artifacts.dir" value="${basedir}/artifacts" />
 	<property name="javadoc.dir" value="${tmp.dir}/${module.name}-${module.version}-javadoc" />
-	
+
 	<fileset id="lib.dir" dir="${basedir}/../lib">
 		<include name="jna.jar" />
 	</fileset>
@@ -42,10 +44,14 @@
 	<target name="setup" depends="clean">
 		<mkdir dir="${tmp.dir}" />
 		<mkdir dir="${tmp.dir}/classes" />
+		<mkdir dir="${zip.dir}" />
+		<mkdir dir="${zip.dir}/bin" />
+		<mkdir dir="${zip.dir}/lib" />
+		<mkdir dir="${zip.dir}/log" />
 		<mkdir dir="${artifacts.dir}" />
 		<mkdir dir="${javadoc.dir}" />
 	</target>
-	
+
 	<!-- Run javadoc -->
 	<target name="javadoc">
 		<javadoc access="public" destdir="${javadoc.dir}" author="true" 
@@ -60,7 +66,7 @@
 			</classpath>
 		</javadoc>
 	</target>
-	
+
 	<!-- Compilation targets: this module produces a java library -->
 	<!-- Java library compile -->
 	<target name="compile" depends="setup">
@@ -69,7 +75,7 @@
 			debuglevel="lines,vars,source" srcdir="${source.dir}" 
 			destdir="${tmp.dir}/classes" classpathref="library.path" />
 	</target>
-	
+
 	<!-- Jar file creation -->
 	<target name="compress" depends="compile,javadoc">
 		<jar destfile="${artifacts.dir}/${module.name}-${module.version}.jar" 
@@ -83,12 +89,38 @@
 				<section name="Copyright">
 					<attribute name="Copy" value="(C) ${owner}" />
 				</section>
+				<attribute name="Main-Class" value="edu.ucdenver.rfidmeetingtracker.reader.RFIDMeetingTracker"/>
 			</manifest>
 		</jar>
 	</target>
-	
-	
-	
+
+	<!-- build a temporary directory with contents of the zip file-->
+	<target name="copy" description="Copy zipfile contents to the exploded zip directory">
+		<copy todir="${zip.dir}/lib">
+			<fileset dir="${artifacts.dir}">
+				<include name="${module.name}-${module.version}.jar" />
+			</fileset>
+			<fileset dir="${basedir}/../lib">
+				<include name="jna.jar" />
+			</fileset>
+		</copy>
+		<copy todir="${zip.dir}/bin">
+			<fileset dir="${service.dir}">
+				<include name="RFIDMeetingTrackerService.exe" />
+				<include name="RFIDMeetingTrackerServicew.exe" />
+			</fileset>
+		</copy>
+		<copy todir="${zip.dir}">
+			<fileset dir="${service.dir}">
+				<include name="Install-Remove-Service.bat" />
+			</fileset>
+			<fileset dir="${basedir}/..">
+				<include name="README.txt" />
+				<include name="LICENSE.txt" />
+			</fileset>
+		</copy>
+	</target>
+
 	<!-- Create the javadoc distribution -->
 	<target name="distribution.javadoc">
 		<zip destfile="${artifacts.dir}/${module.name}-${module.version}-javadoc.zip" 
@@ -113,12 +145,10 @@
 	<!-- Create the binary distribution -->
 	<target name="distribution.binary">
 		<zip destfile="${artifacts.dir}/${module.name}-${module.version}-binary.zip">
-			<zipfileset file="${artifacts.dir}/${module.name}-${module.version}.jar" />
-			<zipfileset file="${basedir}/../LICENSE.txt" />
-			<zipfileset file="${basedir}/../README.txt" />
+			<zipfileset dir="${zip.dir}" includes="**" />
 		</zip>
 	</target>
 	<!-- build all distributions -->
 	<target name="distributions" 
-		depends="compress,distribution.binary,distribution.javadoc,distribution.source"/>
+		depends="compress,copy,distribution.binary,distribution.javadoc,distribution.source"/>
 </project>
