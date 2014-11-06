@@ -1,0 +1,124 @@
+<!--
+ * RFIDMeetingTracker is a simple windows service for storing
+ * RFID swipe card data in order to track meeting attendance
+ *
+ * Copyright (C) 2014 Regents of the University of Colorado.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+-->
+<project name="RFIDMeetingTracker Service" default="distributions">
+	<property name="module.name" value="rfidmeetingtracker" />
+	<property name="owner" value="University of Colorado Denver, Department of Radiology" />
+	<property name="author" value="Sarah Kreidler" />
+	<property name="module.version" value="1.0.0" />
+	<property name="source.dir" value="${basedir}/../src" />
+	<property name="tmp.dir" value="${basedir}/tmp" />
+	<property name="artifacts.dir" value="${basedir}/artifacts" />
+	<property name="javadoc.dir" value="${tmp.dir}/${module.name}-${module.version}-javadoc" />
+	
+	<fileset id="lib.dir" dir="${basedir}/lib">
+		<include name="jna.jar" />
+	</fileset>
+	<path id="library.path">
+		<fileset refid="lib.dir" />
+	</path>
+	<target name="clean">
+		<delete dir="${tmp.dir}" />
+		<delete dir="${artifacts.dir}" />
+	</target>
+	<target name="setup" depends="clean">
+		<mkdir dir="${tmp.dir}" />
+		<mkdir dir="${tmp.dir}/classes" />
+		<mkdir dir="${artifacts.dir}" />
+		<mkdir dir="${javadoc.dir}" />
+	</target>
+	
+	<!-- Run javadoc -->
+	<target name="javadoc">
+		<javadoc access="public" destdir="${javadoc.dir}" author="true" 
+			version="true" use="true" 
+			windowtitle="${owner}: RFIDMeetingTracker Service API (${module.version}) Specification" 
+			doctitle="${owner}: RFIDMeetingTracker Service API (${module.version}) Specification">
+			<fileset dir="${source.dir}" defaultexcludes="yes">
+				<include name="**/*.java" />
+			</fileset>
+			<classpath>
+				<path refid="library.path" />
+			</classpath>
+		</javadoc>
+	</target>
+	
+	<!-- Compilation targets: this module produces a java library -->
+	<!-- Java library compile -->
+	<target name="compile" depends="setup">
+		<javac debug="true" deprecation="on" listfiles="true" 
+			includeantruntime="false" 
+			debuglevel="lines,vars,source" srcdir="${source.dir}" 
+			destdir="${tmp.dir}/classes" classpathref="library.path" />
+	</target>
+	
+	<!-- Jar file creation -->
+	<target name="compress" depends="compile,javadoc">
+		<jar destfile="${artifacts.dir}/${module.name}-${module.version}.jar" 
+			basedir="${tmp.dir}/classes" includes="**/*.class">
+			<manifest>
+				<attribute name="Author" value="${author}" />
+				<section name="Shared">
+					<attribute name="Title" value="${project}" />
+					<attribute name="Vendor" value="${owner}" />
+				</section>
+				<section name="Copyright">
+					<attribute name="Copy" value="(C) ${owner}" />
+				</section>
+			</manifest>
+		</jar>
+	</target>
+	
+	
+	
+	<!-- Create the javadoc distribution -->
+	<target name="distribution.javadoc">
+		<zip destfile="${artifacts.dir}/${module.name}-${module.version}-javadoc.zip" 
+			basedir="${javadoc.dir}/..">
+			<zipfileset dir="${javadoc.dir}" />
+			<zipfileset file="${basedir}/../LICENSE.txt" />
+			<zipfileset file="${basedir}/../README.txt" />
+		</zip>
+	</target>
+	<!-- Create the source distribution -->
+	<target name="distribution.source">
+		<zip destfile="${artifacts.dir}/${module.name}-${module.version}-source.zip">
+			<zipfileset dir="${basedir}/../.." includes="RFIDMeetingTracker/*,
+				RFIDMeetingTracker/build/build.xml,
+				RFIDMeetingTracker/src/**,
+				RFIDMeetingTracker/lib/**,
+				RFIDMeetingTracker/service/**" />
+			<zipfileset file="${basedir}/../LICENSE.txt" />
+			<zipfileset file="${basedir}/../README.txt" />
+		</zip>
+	</target>
+	<!-- Create the binary distribution -->
+	<target name="distribution.binary">
+		<zip destfile="${artifacts.dir}/${module.name}-${module.version}-binary.zip">
+			<zipfileset file="${artifacts.dir}/${module.name}-${module.version}.jar" />
+			<zipfileset file="${basedir}/../LICENSE.txt" />
+			<zipfileset file="${basedir}/../README.txt" />
+		</zip>
+	</target>
+	<!-- build all distributions -->
+	<target name="distributions" 
+		depends="compress,distribution.binary,distribution.javadoc,distribution.source"/>
+</project>
